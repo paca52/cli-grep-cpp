@@ -1,58 +1,67 @@
 #include <iostream>
 #include <string>
 #include <filesystem>
+#include <vector>
 using namespace std;
 
 namespace fs = std::filesystem;
 
-string path;
+const size_t TAB_SIZE = 2;
+int tab_num = 0;
+
+string search;
+
+struct File {
+    string name;
+    string path;
+
+    File() :name(""), path("") { }
+    File(string name, string path) :name(name), path(path) { }
+};
+
+vector<File> vec;
 
 bool is_hidden(const fs::directory_entry& entry) {
-    // cout << "test_path: " << entry.path() << endl;
-    // cout << "test: " <<  entry.path().filename().string()[0] << endl;
-    // cout << endl;
     return entry.path().filename().string()[0] == '.';
 }
 
-int br = 0;
 void explore(fs::path p) {
     for(const auto& entry : fs::directory_iterator(p)) {
         if(is_hidden(entry)) continue;
-        int i = 0;
-        while(i++ < br) cout << "\t";
-        cout << entry << endl;
+
         if(entry.is_directory()) {
-            br += 1;
             explore(entry.path());
-            br -= 1;
+        } else {
+            string name = entry.path().filename().string();
+
+            if(name.find(search) != string::npos) {
+                vec.push_back(File(name, entry.path().string()));
+            }
+
         }
-        // if(!entry.exists()) continue;
-        // if(entry.is_directory()) {
-        //     br += 1;
-        //     explore(p.append(entry.path().filename().string()));
-        //     br -= 1;
-        // } else {
-        //     cout << entry.path() << endl;
-        // }
     }
 }
 
 int main(void) {
 
+    string path;
     cout << "Uneti apsolutni ili relativni put do foldera: ";
-    cin >> path;
-    fs::path p(::path);
+    getline(cin, path);
+    fs::path p(path);
 
-    cout << "files:\n";
+    cout << "Unesi ime ili deo imena fajla koji trazis: ";
+    getline(cin, search);
+
     explore(p);
-    // for(const auto& entry : fs::directory_iterator(path)) {
-    //     if(entry.is_directory()) {
-    //     }
-    //     if(is_hidden(entry)) {
-    //         continue;
-    //     }
-    //     cout << entry.path() << endl;
-    // }
+
+    if(vec.size() == 0) {
+        cout << "Nema takvog fajla" << "\n";
+    } else { 
+        cout << "Found:\n";
+        for(const File& f : vec) {
+            cout << "\t" << f.path << "\n";
+        } 
+    }
 
     return 0;
 }
