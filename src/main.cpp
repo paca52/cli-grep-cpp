@@ -4,7 +4,6 @@
 #include "ftxui/dom/elements.hpp"
 #include "ftxui/screen/screen.hpp"
 #include "ftxui/screen/string.hpp"
-// #include "ftxui/component/loop.hpp"
 #include <iostream>
 #include <string>
 #include <filesystem>
@@ -24,70 +23,87 @@ bool is_hidden(const fs::directory_entry& entry) {
     entry.path().filename().string() == "build";
 }
 
-void to_lower(string& str) {
+string to_lower(string str) {
   for(char& ch : str) {
     if(ch >= 'A' && ch <='Z') ch = 'a' + ch - 'A';
   }
+  return str;
 }
 
-Elements e;
-void explore(fs::path p) {
+vector<fs::path> Data;
+
+void getData(fs::path p = fs::current_path()) {
   for(const auto& entry : fs::directory_iterator(p)) {
     if(is_hidden(entry)) continue;
 
+    Data.push_back(entry.path());
+
     if(entry.is_directory()) {
-      explore(entry.path());
-    } else {
-      string name = entry.path().filename().string();
-      to_lower(name);
-
-      if(name.find(srch) != string::npos) {
-        string 
-          pref=string(name.begin(), name.begin()+name.find(srch)),
-          suff=string(name.begin()+name.find(srch)+srch.length(), name.end());
-
-        e.push_back(hbox({
-          text(pref),
-          text(srch) | color(Color::Magenta),
-          text(suff) | flex,
-          separator(),
-          text(entry.path().string()) | color(Color::DeepSkyBlue1)
-        }));
-      }
+      getData(entry.path());
     }
   }
 }
 
-int main(void) {
-  string inp;
-  Component input = Input(&inp, "Name");
+Elements e;
+void explore() {
+  for(const auto& entry : Data) {
+    string name = entry.filename().string();
 
-  fs::path p = fs::current_path();
+    if(to_lower(name).find(to_lower(srch)) != string::npos) {
+      // string pref = "", suff = "";
+      // pref = string(name.begin(), name.begin()+name.find(srch));
+      // if(srch.length() != 1)
+      //   suff = string(name.begin()+name.find(srch)+srch.length(), name.end());
+
+      // if(fs::directory_entry(entry).is_directory()) suff += "/";
+
+      e.push_back(hbox({
+        // text(pref),
+        // text(srch) | color(Color::Magenta),
+        // text(suff) | flex,
+        text(name) | flex,
+        separator(),
+        text((fs::directory_entry(entry).is_directory() ? "folder" : "file")),
+        separatorLight(),
+        text(entry.string()) | color(Color::DeepSkyBlue1)
+      }));
+    }
+
+  }
+}
+
+int main(void) {
+  Component input = Input(&srch, "Name");
+
+  getData();
 
   Elements vec;
   auto comp = Renderer(input, [&] {
+
+    e.clear();
+    explore();
+    vec = e;
     return vbox({
-      hbox(text("Input file name")),
-      hbox({
-        input->Render() | dim | bold | color(Color::Magenta)
-      }),
+      hbox(
+        text("Input file name: "),
+        input->Render() | bold | color(Color::Magenta)
+      ),
+      separatorLight(),
       window(
         text("Files found"), vbox(vec)
       ),
     }) | border | color(Color::LightSkyBlue1);
   });
 
-  comp |= CatchEvent([&](Event event) {
-    if(event == Event::Return) {
-      e.clear();
-      srch = inp;
-      to_lower(srch);
-      explore(p);
-      vec = e;
-      return true;
-    }
-    return false;
-  });
+  // comp |= CatchEvent([&](Event event) {
+  //   if(event == Event::Return) {
+  //     e.clear();
+  //     explore();
+  //     vec = e;
+  //     return true;
+  //   }
+  //   return false;
+  // });
 
   auto screen = ScreenInteractive::TerminalOutput();
   screen.Loop(comp);
