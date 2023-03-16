@@ -42,13 +42,18 @@ void explore(fs::path p) {
       to_lower(name);
 
       if(name.find(srch) != string::npos) {
+        string 
+          pref=string(name.begin(), name.begin()+name.find(srch)),
+          suff=string(name.begin()+name.find(srch)+srch.length(), name.end());
+
         e.push_back(hbox({
-          text(entry.path().filename().string()) | flex,
+          text(pref),
+          text(srch) | color(Color::Magenta),
+          text(suff) | flex,
           separator(),
-          text(entry.path().string())
+          text(entry.path().string()) | color(Color::DeepSkyBlue1)
         }));
       }
-
     }
   }
 }
@@ -64,12 +69,12 @@ int main(void) {
     return vbox({
       hbox(text("Input file name")),
       hbox({
-        input->Render() | dim | bold
+        input->Render() | dim | bold | color(Color::Magenta)
       }),
       window(
         text("Files found"), vbox(vec)
       ),
-    }) | border;
+    }) | border | color(Color::LightSkyBlue1);
   });
 
   comp |= CatchEvent([&](Event event) {
