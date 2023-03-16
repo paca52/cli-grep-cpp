@@ -1,9 +1,3 @@
-GXX = g++
-FLAGS = -std=c++20 -Wall -Wextra -pedantic
-BIN = grep
 
-$(BIN): main.cpp
-	$(GXX) $< -o $@ $(FLAGS)
-
-clean:
-	del .\$(BIN).exe
+all:
+	@cd build && make -j4 && cd .. && mv ./build/ftxui-starter.exe ./grep.exe
