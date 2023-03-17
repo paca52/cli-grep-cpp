@@ -24,9 +24,14 @@ vector<fs::path> Data;
 Elements e;
 
 // ** case sensitive search ** //
-int             CASE_SENSITIVE_SELECTED = 0;
-vector<string>  CASE_SENSITIVE_ENTRIES  = { "on", "off" };
-Component       CASE_SENSITIVE_OPT      = Toggle(&CASE_SENSITIVE_ENTRIES, &CASE_SENSITIVE_SELECTED);
+// int             CASE_SENSITIVE_SELECTED = 0;
+// vector<string>  CASE_SENSITIVE_ENTRIES  = { "on", "off" };
+// Component       CASE_SENSITIVE_OPT      = Toggle(&CASE_SENSITIVE_ENTRIES, &CASE_SENSITIVE_SELECTED);
+
+  bool CASE_SENSITIVE_SELECTED = false;
+  auto checkboxes = Container::Vertical({
+    Checkbox("Case Sensitive Search", &CASE_SENSITIVE_SELECTED),
+  });
 
 namespace Util {
   // Children list for collapsable menu
@@ -70,12 +75,7 @@ Component input = Input(&srch, "Name");
 Component collapable_menu = Collapsible(
   "Options",
   Util::Inner({
-    Collapsible(
-      "Case Sensitive Search",
-      Util::Inner({
-        CASE_SENSITIVE_OPT
-      })
-    )
+    checkboxes
   })
 );
 
@@ -102,7 +102,7 @@ void badCharHeuristic(string str, int size, int badchar[NO_OF_CHARS]) {
 
 int search(string txt, string pat) {
  
-  if(CASE_SENSITIVE_SELECTED) {
+  if(!CASE_SENSITIVE_SELECTED) {
     Util::to_lower(txt);
     Util::to_lower(pat);
   }
@@ -154,7 +154,7 @@ void explore() {
 
       e.push_back(hbox({
         text(pref),
-        text(srch) | color(Color::Magenta),
+        text(( !CASE_SENSITIVE_SELECTED ? string(name.begin()+found, name.begin()+found+srch.size()) : srch )) | color(Color::Magenta),
         text(suff) | flex,
         separator(),
         text((fs::directory_entry(entry).is_directory() ? "folder" : "file")),
