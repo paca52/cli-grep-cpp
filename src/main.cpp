@@ -22,16 +22,17 @@ string srch;
 string CURR_PATH;
 vector<fs::path> Data;
 Elements e;
+bool UPDATE_SRCH = false;
 
-// ** case sensitive search ** //
-// int             CASE_SENSITIVE_SELECTED = 0;
-// vector<string>  CASE_SENSITIVE_ENTRIES  = { "on", "off" };
-// Component       CASE_SENSITIVE_OPT      = Toggle(&CASE_SENSITIVE_ENTRIES, &CASE_SENSITIVE_SELECTED);
-
-  bool CASE_SENSITIVE_SELECTED = false;
-  auto checkboxes = Container::Vertical({
-    Checkbox("Case Sensitive Search", &CASE_SENSITIVE_SELECTED),
-  });
+// CHECKBOXS FOR OPTIONS
+bool CASE_SENSITIVE_SELECTED = false;
+bool OUTPUT_PATH_TO_FILE = true;
+bool OUTPUT_FILE_TYPE = true;
+auto checkboxes = Container::Vertical({
+  Checkbox("Case Sensitive Search", &CASE_SENSITIVE_SELECTED),
+  Checkbox("Show file path",        &OUTPUT_PATH_TO_FILE),
+  Checkbox("Show file type",        &OUTPUT_FILE_TYPE)
+});
 
 namespace Util {
   // Children list for collapsable menu
@@ -80,9 +81,9 @@ Component collapable_menu = Collapsible(
 );
 
 
-
 void getData(fs::path p = fs::path(CURR_PATH)) {
   for(const auto& entry : fs::directory_iterator(p)) {
+    if(!entry.exists()) continue;
     if(Util::is_hidden(entry)) continue;
 
     Data.push_back(entry.path());
@@ -140,15 +141,8 @@ void explore() {
 
     int found = search(name, srch);
     if(found != -1) {
-
-      string pref = string(
-        name.begin(),
-        name.begin() + found
-      );
-      string suff = string(
-        name.begin() + found + srch.size(),
-        name.end()
-      );
+      string pref = string( name.begin(), name.begin() + found );
+      string suff = string( name.begin() + found + srch.size(), name.end() );
 
       if(fs::directory_entry(entry).is_directory()) suff += "\\";
 
@@ -156,16 +150,17 @@ void explore() {
         text(pref),
         text(( !CASE_SENSITIVE_SELECTED ? string(name.begin()+found, name.begin()+found+srch.size()) : srch )) | color(Color::Magenta),
         text(suff) | flex,
-        separator(),
-        text((fs::directory_entry(entry).is_directory() ? "folder" : "file")),
-        separatorLight(),
-        text(entry.relative_path()) | color(Color::DeepSkyBlue1)
+        (OUTPUT_FILE_TYPE ? separator() : text("") ),
+        (OUTPUT_FILE_TYPE ? text((fs::directory_entry(entry).is_directory() ? "folder" : "file")) : text("")),
+        (OUTPUT_PATH_TO_FILE ? separatorLight() : text("") ),
+        (OUTPUT_PATH_TO_FILE ? text(entry.relative_path()) | color(Color::DeepSkyBlue1) : text(""))
       }));
     }
 
   }
 }
 
+int MENU_SELECTED = 0;
 int main(void) {
   CURR_PATH = fs::current_path().string();
   NAME_BEGIN = CURR_PATH.size();
@@ -174,15 +169,18 @@ int main(void) {
   // CONTAINER AND RENDERING
   auto container = Container::Vertical({
     input,
-    collapable_menu
+    collapable_menu,
   });
 
   Elements vec;
   auto comp = Renderer(container, [&] {
 
-    e.clear();
-    explore();
-    vec = e;
+    if(UPDATE_SRCH) {
+      e.clear();
+      explore();
+    }
+
+    // vec = e;
     return vbox({
       hbox(
         text("Input file name: "),
@@ -192,21 +190,16 @@ int main(void) {
       collapable_menu->Render(),
       separator(),
       window(
-        text("Files found"),
-        vbox(vec) | vscroll_indicator | frame | size(HEIGHT, LESS_THAN, 20)
-      ),
+        text("Files found") | focus,
+        vbox(e)
+      ) | size(HEIGHT, LESS_THAN, 15),
     }) | border | color(Color::LightSkyBlue1);
   });
 
-  // comp |= CatchEvent([&](Event event) {
-  //   if(event == Event::Return) {
-  //     e.clear();
-  //     explore();
-  //     vec = e;
-  //     return true;
-  //   }
-  //   return false;
-  // });
+  comp |= CatchEvent([&](Event event) {
+    UPDATE_SRCH = event.is_character() || event == Event::Backspace || event.is_mouse();
+    return false;
+  });
 
   auto screen = ScreenInteractive::TerminalOutput();
   screen.Loop(comp);
